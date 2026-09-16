@@ -32,7 +32,7 @@ Route::group(['middleware' => ['auth', 'verified']], function(){
     Route::get('/sample-crud/edit/{id}',[\App\Http\Controllers\SampleCrudController::class,'edit'])->name('sample-crud.edit');
     Route::post('/sample-crud/store',[\App\Http\Controllers\SampleCrudController::class,'store'])->name('sample-crud.store');
 
-    
+        
     // Sales monitoring routes
     Route::get('/sales',[\App\Http\Controllers\SaleController::class,'index'])->name('sales');
     Route::get('/sales/create',[\App\Http\Controllers\SaleController::class,'create'])->name('sales.create');
