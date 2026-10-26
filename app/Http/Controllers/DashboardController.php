@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Sale;
+use App\Models\User;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -12,27 +13,40 @@ class DashboardController extends Controller
     {
         abort_unless(auth()->user()->role === null || (int) auth()->user()->role !== 0, 403);
 
-        $totalAdmins = User::where('role', 2)->count();
+        $totalAdmins = User::where('role', 2)
+            ->whereNull('archived_at')
+            ->count();
 
-        $totalSalesCount = Sale::count();
-        $totalSalesAmount = (float) Sale::sum('amount');
-        $pendingSales = Sale::where('status', 'pending')->count();
-        $completedSales = Sale::where('status', 'completed')->count();
+        $activeSales = Sale::whereNull('archived_at');
+        $totalSalesCount = (clone $activeSales)->count();
+        $totalSalesAmount = (float) (clone $activeSales)->sum('amount');
+        $pendingSales = (clone $activeSales)->where('status', 'pending')->count();
+        $completedSales = (clone $activeSales)->where('status', 'completed')->count();
         $averageOrderValue = $totalSalesCount > 0 ? round($totalSalesAmount / $totalSalesCount, 2) : 0;
 
-        $monthlySales = Sale::orderBy('sale_date')
-            ->get()
-            ->groupBy(fn ($sale) => \Carbon\Carbon::parse($sale->sale_date)->format('Y-m'))
+        $today = Carbon::today();
+        $firstMonth = $today->copy()->startOfMonth()->subMonths(5);
+        $salesByMonth = (clone $activeSales)
+            ->whereBetween('sale_date', [$firstMonth->toDateString(), $today->toDateString()])
+            ->get(['sale_date', 'amount'])
+            ->groupBy(fn ($sale) => Carbon::parse($sale->sale_date)->format('Y-m'))
             ->map(fn ($sales, $month) => [
-                'label' => \Carbon\Carbon::createFromFormat('Y-m', $month)->format('M'),
+                'label' => Carbon::createFromFormat('Y-m', $month)->format('M Y'),
                 'total' => (float) $sales->sum('amount'),
-            ])
-            ->sortKeys()
-            ->take(-6)
-            ->values()
-            ->toArray();
+            ]);
 
-        $recentSales = Sale::orderByDesc('sale_date')
+        $monthlySales = collect(range(0, 5))
+            ->map(fn ($offset) => $firstMonth->copy()->addMonths($offset))
+            ->map(fn (Carbon $month) => [
+                'label' => $month->format('M Y'),
+                'total' => $salesByMonth->get($month->format('Y-m'), ['total' => 0])['total'],
+            ])
+            ->values()
+            ->all();
+
+        $recentSales = (clone $activeSales)
+            ->orderByDesc('sale_date')
+            ->orderByDesc('id')
             ->take(5)
             ->get()
             ->map(fn ($sale) => [

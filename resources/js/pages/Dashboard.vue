@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ArrowUpRight, CircleDollarSign, ClipboardCheck, Package, ShoppingCart, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -108,7 +108,7 @@ const statusClasses: Record<string, string> = {
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-slate-500">Sales status</p>
+                            <p class="text-sm text-slate-500">Completed Sales</p>
                             <p class="mt-3 text-3xl font-bold text-slate-900">{{ completedSales }}</p>
                         </div>
                         <div class="rounded-xl bg-violet-100 p-3 text-violet-700">
@@ -184,7 +184,7 @@ const statusClasses: Record<string, string> = {
                         <p class="text-sm text-slate-500">Recent activity</p>
                         <h2 class="text-xl font-semibold text-slate-900">Latest sales</h2>
                     </div>
-                    <a href="/sales" class="text-sm font-medium text-sky-600 hover:text-sky-700">View all sales</a>
+                    <Link :href="route('sales')" class="text-sm font-medium text-sky-600 hover:text-sky-700">View all sales</Link>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -207,6 +207,9 @@ const statusClasses: Record<string, string> = {
                                     </span>
                                 </td>
                                 <td class="py-3 text-sm text-slate-600">{{ sale.notes || '—' }}</td>
+                            </tr>
+                            <tr v-if="recentSales.length === 0">
+                                <td colspan="4" class="py-8 text-center text-sm text-slate-500">No sales recorded yet.</td>
                             </tr>
                         </tbody>
                     </table>

@@ -1,11 +1,25 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 
-const props = defineProps<{ sales: any; canManage: boolean; canEditSales: boolean; canDeleteSales: boolean }>();
+const props = defineProps<{ sales: any; search: string; canManage: boolean; canEditSales: boolean; canDeleteSales: boolean }>();
 const form = ref({ sale_date: '', amount: 0, status: 'completed', notes: '' });
-const isAdmin = Number(props.canManage) === 1;
+const search = ref(props.search);
+let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('sales'),
+            { search: value || undefined },
+            { only: ['sales', 'search'], preserveState: true, preserveScroll: true, replace: true },
+        );
+    }, 300);
+});
+
+onUnmounted(() => clearTimeout(searchTimeout));
 
 function submit() {
     router.post('/sales/store', form.value);
@@ -28,15 +42,25 @@ function archiveSale(id: number) {
         <div class="border-t border-slate-200 bg-white p-4 text-slate-950">
             <h1 class="mb-4 text-2xl font-semibold">Sales</h1>
 
-            <div class="mb-6 overflow-x-auto">
+            <div v-if="props.canManage" class="mb-6">
+                <label for="sales-search" class="sr-only">Search sales</label>
+                <input
+                    id="sales-search"
+                    v-model="search"
+                    type="search"
+                    class="input w-full max-w-xl"
+                    placeholder="Search sales by date, amount, status, submitter, or notes"
+                />
+            </div>
+            <div v-else class="mb-6 overflow-x-auto">
                 <form @submit.prevent="submit" class="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <input v-model="form.sale_date" type="date" class="input" required />
                     <input v-model="form.amount" type="number" step="0.01" class="input" placeholder="Amount" required />
-                    <select v-model="form.status" class="input" :disabled="!isAdmin">
+                    <select v-model="form.status" class="input" disabled>
                         <option value="completed">completed</option>
                         <option value="pending">pending</option>
                     </select>
-                    <input v-model="form.notes" placeholder="Notes" class="input" :disabled="!isAdmin" />
+                    <input v-model="form.notes" placeholder="Notes" class="input" disabled />
                     <button type="submit" class="btn btn-primary w-fit">Add Sale</button>
                 </form>
             </div>
@@ -65,6 +89,11 @@ function archiveSale(id: number) {
                                 <button type="button" class="action-link" @click="editSale(sale.id)">Edit</button>
                                 <button v-if="props.canDeleteSales" type="button" class="action-link archive-link" @click="archiveSale(sale.id)">Archive</button>
                             </div>
+                        </td>
+                    </tr>
+                    <tr v-if="sales.data.length === 0">
+                        <td :colspan="props.canEditSales ? 6 : 5" class="table-cell text-center">
+                            {{ props.canManage && search ? 'No sales match your search.' : 'No sales recorded yet.' }}
                         </td>
                     </tr>
                 </tbody>

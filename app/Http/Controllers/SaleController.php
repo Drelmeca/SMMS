@@ -11,10 +11,31 @@ class SaleController extends Controller
     public function index()
     {
         $isAdmin = (int) auth()->user()->role === 2;
-        $sales = Sale::whereNull('archived_at')->with('submittedBy:id,name')->orderBy('sale_date', 'desc')->paginate(15);
+        $search = $isAdmin ? trim((string) request()->query('search', '')) : '';
+        $salesQuery = Sale::whereNull('archived_at')
+            ->with('submittedBy:id,name')
+            ->orderByDesc('sale_date')
+            ->orderByDesc('id');
+
+        if ($search !== '') {
+            $salesQuery->where(function ($query) use ($search) {
+                $query->where('sale_date', 'like', "%{$search}%")
+                    ->orWhere('amount', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('submittedBy', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+
+                if (ctype_digit($search)) {
+                    $query->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        $sales = $salesQuery->paginate(15)->withQueryString();
 
         return Inertia::render('Sales', [
             'sales' => $sales,
+            'search' => $search,
             'canManage' => $isAdmin,
             'canEditSales' => in_array((int) auth()->user()->role, [0, 2], true),
             'canDeleteSales' => $isAdmin,
@@ -24,6 +45,7 @@ class SaleController extends Controller
     public function create()
     {
         abort_unless((int) auth()->user()->status === 1, 403);
+
         return Inertia::render('SalesCreate');
     }
 
@@ -49,6 +71,7 @@ class SaleController extends Controller
     {
         abort_unless(in_array((int) auth()->user()->role, [0, 2], true), 403);
         $sale = Sale::findOrFail($id);
+
         return Inertia::render('SalesEdit', [
             'sale' => $sale,
             'canManage' => (int) auth()->user()->role === 2,
@@ -68,7 +91,7 @@ class SaleController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $data['status'] = $sale->status;
             $data['notes'] = $sale->notes;
         }
@@ -84,6 +107,7 @@ class SaleController extends Controller
         $sale = Sale::findOrFail($id);
         $sale->archived_at = now();
         $sale->save();
+
         return redirect()->route('sales');
     }
 }
