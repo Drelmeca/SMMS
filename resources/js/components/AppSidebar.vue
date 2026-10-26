@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Archive, BookOpen, LayoutGrid, Package, ShoppingCart, Users } from 'lucide-vue-next';
+import { Archive, BookOpen, Boxes, LayoutGrid, Package, ShoppingCart, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 
@@ -31,6 +31,11 @@ if (role === 'admin' || role === 2) {
                 title: 'Products',
                 href: '/products',
                 icon: Package,
+            } as NavItem,
+            {
+                title: 'Inventory',
+                href: '/inventory',
+                icon: Boxes,
             } as NavItem,
             {
                 title: 'Sales Records',

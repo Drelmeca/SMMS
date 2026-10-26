@@ -17,6 +17,7 @@ type ArchivedSale = {
     status: string;
     notes: string | null;
     submitted_by?: { name: string };
+    items: Array<{ quantity: number; product?: { name: string } }>;
     archived_at: string;
 };
 
@@ -76,6 +77,7 @@ function restoreSale(id: number) {
                         <thead>
                             <tr>
                                 <th>Date</th>
+                                <th>Products</th>
                                 <th>Amount</th>
                                 <th>Status</th>
                                 <th>Submitted By</th>
@@ -87,6 +89,9 @@ function restoreSale(id: number) {
                         <tbody>
                             <tr v-for="sale in props.sales" :key="sale.id">
                                 <td>{{ sale.sale_date }}</td>
+                                <td>
+                                    {{ sale.items.map((item) => `${item.product?.name ?? 'Product'} x ${item.quantity}`).join(', ') || '—' }}
+                                </td>
                                 <td>{{ sale.amount }}</td>
                                 <td>{{ sale.status }}</td>
                                 <td>{{ sale.submitted_by?.name ?? '-' }}</td>
@@ -95,7 +100,7 @@ function restoreSale(id: number) {
                                 <td><button class="restore-link" @click="restoreSale(sale.id)">Restore</button></td>
                             </tr>
                             <tr v-if="!props.sales.length">
-                                <td colspan="7" class="empty-cell">No archived sales.</td>
+                                <td colspan="8" class="empty-cell">No archived sales.</td>
                             </tr>
                         </tbody>
                     </table>

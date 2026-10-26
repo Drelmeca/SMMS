@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\SaleInventory;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ArchiveController extends Controller
@@ -20,7 +22,7 @@ class ArchiveController extends Controller
         return Inertia::render('Archive', [
             'users' => User::whereNotNull('archived_at')->latest('archived_at')->get(),
             'sales' => Sale::whereNotNull('archived_at')
-                ->with('submittedBy:id,name')
+                ->with(['submittedBy:id,name', 'items.product:id,name'])
                 ->latest('archived_at')
                 ->get(),
         ]);
@@ -41,9 +43,14 @@ class ArchiveController extends Controller
     {
         $this->ensureAdmin();
 
-        $sale = Sale::findOrFail($id);
-        $sale->archived_at = null;
-        $sale->save();
+        DB::transaction(function () use ($id) {
+            $sale = Sale::with('items')->lockForUpdate()->findOrFail($id);
+            if ($sale->archived_at !== null) {
+                app(SaleInventory::class)->deductStock($sale);
+                $sale->archived_at = null;
+                $sale->save();
+            }
+        });
 
         return back();
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -16,8 +17,25 @@ class ProductController extends Controller
     public function index()
     {
         $this->ensureAdmin();
+
         return Inertia::render('Products', [
             'products' => Product::orderBy('name')->get(),
+        ]);
+    }
+
+    public function inventory()
+    {
+        $this->ensureAdmin();
+
+        return Inertia::render('Inventory', [
+            'products' => Product::orderBy('name')->get([
+                'id',
+                'name',
+                'category',
+                'price',
+                'stock_quantity',
+                'is_active',
+            ]),
         ]);
     }
 
@@ -28,6 +46,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:120',
             'category' => 'nullable|string|max:80',
             'price' => 'required|numeric|min:0',
+            'stock_quantity' => 'required|integer|min:0|max:4294967295',
         ]);
 
         Product::create($data + ['is_active' => true]);
@@ -39,13 +58,19 @@ class ProductController extends Controller
     {
         $this->ensureAdmin();
         $data = $request->validate([
-            'name' => 'required|string|max:120',
-            'category' => 'nullable|string|max:80',
-            'price' => 'required|numeric|min:0',
+            'name' => 'sometimes|required|string|max:120',
+            'category' => 'sometimes|nullable|string|max:80',
+            'price' => 'sometimes|required|numeric|min:0',
+            'stock_quantity' => 'sometimes|required|integer|min:0|max:4294967295',
             'is_active' => 'boolean',
         ]);
 
-        $product->update($data);
+        DB::transaction(function () use ($product, $data) {
+            $lockedProduct = Product::whereKey($product->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $lockedProduct->update($data);
+        });
 
         return redirect()->route('products');
     }

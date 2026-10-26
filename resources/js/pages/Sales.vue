@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import SalesEntryForm from '@/components/SalesEntryForm.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { onUnmounted, ref, watch } from 'vue';
 
-const props = defineProps<{ sales: any; search: string; canManage: boolean; canEditSales: boolean; canDeleteSales: boolean }>();
-const form = ref({ sale_date: '', amount: 0, status: 'completed', notes: '' });
+const props = defineProps<{
+    sales: any;
+    search: string;
+    products: Array<{ id: number; name: string; price: number; stock_quantity: number }>;
+    canManage: boolean;
+    canEditSales: boolean;
+    canDeleteSales: boolean;
+}>();
 const search = ref(props.search);
-const isAdmin = Number(props.canManage) === 1;
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
 watch(search, (value) => {
@@ -21,10 +27,6 @@ watch(search, (value) => {
 });
 
 onUnmounted(() => clearTimeout(searchTimeout));
-
-function submit() {
-    router.post('/sales/store', form.value);
-}
 
 function editSale(id: number) {
     router.visit(`/sales/edit/${id}`);
@@ -54,16 +56,7 @@ function archiveSale(id: number) {
                 />
             </div>
             <div v-else class="mb-6 overflow-x-auto">
-                <form @submit.prevent="submit" class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <input v-model="form.sale_date" type="date" class="input" required />
-                    <input v-model="form.amount" type="number" step="0.01" class="input" placeholder="Amount" required />
-                    <select v-model="form.status" class="input" :disabled="!isAdmin">
-                        <option value="completed">completed</option>
-                        <option value="pending">pending</option>
-                    </select>
-                    <input v-model="form.notes" placeholder="Notes" class="input" :disabled="!isAdmin" />
-                    <button type="submit" class="btn btn-primary w-fit">Add Sale</button>
-                </form>
+                <SalesEntryForm :products="props.products" :can-manage="props.canManage" />
             </div>
 
             <div class="overflow-x-auto">
@@ -71,6 +64,7 @@ function archiveSale(id: number) {
                 <thead>
                     <tr>
                         <th class="table-heading">Date</th>
+                        <th class="table-heading">Products</th>
                         <th class="table-heading">Amount</th>
                         <th class="table-heading">Status</th>
                         <th class="table-heading">Submitted By</th>
@@ -81,6 +75,12 @@ function archiveSale(id: number) {
                 <tbody>
                     <tr v-for="sale in sales.data" :key="sale.id">
                         <td class="table-cell">{{ sale.sale_date }}</td>
+                        <td class="table-cell">
+                            <span v-if="sale.items?.length">
+                                {{ sale.items.map((item) => `${item.product?.name ?? 'Product'} x ${item.quantity}`).join(', ') }}
+                            </span>
+                            <span v-else>—</span>
+                        </td>
                         <td class="table-cell">{{ sale.amount }}</td>
                         <td class="table-cell">{{ sale.status }}</td>
                         <td class="table-cell">{{ sale.submitted_by?.name ?? '-' }}</td>
@@ -93,7 +93,7 @@ function archiveSale(id: number) {
                         </td>
                     </tr>
                     <tr v-if="sales.data.length === 0">
-                        <td :colspan="props.canEditSales ? 6 : 5" class="table-cell text-center">
+                        <td :colspan="props.canEditSales ? 7 : 6" class="table-cell text-center">
                             {{ props.canManage && search ? 'No sales match your search.' : 'No sales recorded yet.' }}
                         </td>
                     </tr>

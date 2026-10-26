@@ -26,6 +26,7 @@ Route::group(['middleware' => ['auth', 'verified']], function(){
     Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products');
     Route::post('/products', [\App\Http\Controllers\ProductController::class, 'store'])->name('products.store');
     Route::put('/products/{product}', [\App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
+    Route::get('/inventory', [\App\Http\Controllers\ProductController::class, 'inventory'])->name('inventory');
 
     Route::get('/sample-crud',action: [\App\Http\Controllers\SampleCrudController::class,'index'])->name('sample-crud');
     Route::get('/sample-crud/create',[\App\Http\Controllers\SampleCrudController::class,'create'])->name('sample-crud.create');
