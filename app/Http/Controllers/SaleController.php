@@ -8,10 +8,10 @@ use Inertia\Inertia;
 
 class SaleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $isAdmin = (int) auth()->user()->role === 2;
-        $search = $isAdmin ? trim((string) request()->query('search', '')) : '';
+        $search = $isAdmin ? trim((string) $request->query('search', '')) : '';
         $salesQuery = Sale::whereNull('archived_at')
             ->with('submittedBy:id,name')
             ->orderByDesc('sale_date')

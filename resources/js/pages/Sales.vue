@@ -6,6 +6,7 @@ import { onUnmounted, ref, watch } from 'vue';
 const props = defineProps<{ sales: any; search: string; canManage: boolean; canEditSales: boolean; canDeleteSales: boolean }>();
 const form = ref({ sale_date: '', amount: 0, status: 'completed', notes: '' });
 const search = ref(props.search);
+const isAdmin = Number(props.canManage) === 1;
 let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
 watch(search, (value) => {
@@ -56,11 +57,11 @@ function archiveSale(id: number) {
                 <form @submit.prevent="submit" class="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <input v-model="form.sale_date" type="date" class="input" required />
                     <input v-model="form.amount" type="number" step="0.01" class="input" placeholder="Amount" required />
-                    <select v-model="form.status" class="input" disabled>
+                    <select v-model="form.status" class="input" :disabled="!isAdmin">
                         <option value="completed">completed</option>
                         <option value="pending">pending</option>
                     </select>
-                    <input v-model="form.notes" placeholder="Notes" class="input" disabled />
+                    <input v-model="form.notes" placeholder="Notes" class="input" :disabled="!isAdmin" />
                     <button type="submit" class="btn btn-primary w-fit">Add Sale</button>
                 </form>
             </div>
